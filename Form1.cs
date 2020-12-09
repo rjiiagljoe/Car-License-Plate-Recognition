@@ -381,4 +381,11 @@ namespace 車牌辨識
             basemap_Copy = (Bitmap)bmp.Clone();
         }
     }
+
+    private int PointPm (Point p)
+    {
+        int x = p.X;
+        int y = p.Y;
+         mx = arrayGray[x, y];
+    }
 }
