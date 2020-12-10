@@ -200,24 +200,37 @@ namespace 車牌辨識
         //選擇顯示某目標之輪廓線
         private void pictureBox1_MouseDown(object sender, MouseEventArgs e)
         {
+            if (basemap_Copy == null) return;
             if (e.Button == MouseButtons.Left)
             {
-                if (arrayOutline == null) return;
-                int x = e.X;
-                int y = e.Y;
-                //尋找左方最近之輪廓點
-                while(arrayOutline[x,y]==0 && x>0)
+                int m = -1;
+                for(int k = 0; k < target_Collection.Count; k++)
                 {
-                    x--;
+                    TgInfo T = (TgInfo)target_Collection[k];
+                    if (e.X < T.x_max_negative) continue;
+                    if (e.X > T.x_max_positive) continue;
+                    if (e.Y < T.y_max_negative) continue;
+                    if (e.Y > T.y_max_positive) continue;
+                    m = k;break;
                 }
-                ArrayList A = getGrp(arrayOutline, x, y);//搜尋此目標所有輪廓點
-                Bitmap bmp = f.BWImg(arrayOutline);//建立輪廓圖
-                for(int k=0;k<A.Count;k++)
+                if (m >= 0)
                 {
-                    Point p = (Point)A[k];
-                    bmp.SetPixel(p.X, p.Y, Color.Red);
+                    Bitmap bmp = (Bitmap)basemap_Copy.Clone();
+                    TgInfo T = (TgInfo)target_Collection[m];
+                    for(int n = 0; n < T.targetPointList.Count; n++)
+                    {
+                        Point p = (Point)T.targetPointList[n];
+                        bmp.SetPixel(p.X, p.Y, Color.Red);
+                    }
+                    pictureBox1.Image = bmp;
+                    //指定目標的資訊
+                    string S = "Width=" + T.width.ToString();
+                    S += "\n\r" + "Height=" + T.height.ToString();
+                    S += "\n\r" + "Contrast=" + T.contrast_target_back.ToString();
+                    S += "\n\r" + "Point=" + T.targetPoint.ToString();
+                    MessageBox.Show(S);
                 }
-                pictureBox1.Image = bmp;
+
             }
         }
 
@@ -380,12 +393,60 @@ namespace 車牌辨識
             pictureBox1.Image = bmp;
             basemap_Copy = (Bitmap)bmp.Clone();
         }
-    }
 
-    private int PointPm (Point p)
-    {
-        int x = p.X;
-        int y = p.Y;
-         mx = arrayGray[x, y];
+        //輪廓點與背景的對比度
+        private int PointPm(Point p)
+        {
+            int x = p.X, y = p.Y;
+            int mx = arrayGray[x, y];
+            if (mx < arrayGray[x - 1, y]) mx = arrayGray[x - 1, y];
+            if (mx < arrayGray[x + 1, y]) mx = arrayGray[x + 1, y];
+            if (mx < arrayGray[x, y - 1]) mx = arrayGray[x, y - 1];
+            if (mx < arrayGray[x, y + 1]) mx = arrayGray[x, y + 1];
+            return mx - arrayGray[x, y];
+        }
+
+        //依據對比度排序前10大目標
+        private void sortToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            //建立目標物件的對比度屬性
+            for(int k = 0; k < target_Collection.Count; k++)
+            {
+                TgInfo T = (TgInfo)target_Collection[k];
+                for(int m = 0; m < T.targetPointList.Count; m++)
+                {
+                    int pm = PointPm((Point)T.targetPointList[m]);
+                    if (pm > T.contrast_target_back) T.contrast_target_back = pm;
+                }
+                target_Collection[k] = T;
+            }
+            //依對比度排序
+            for(int i = 0; i < 10; i++)
+            {
+                for(int j = i + 1; j < target_Collection.Count; j++)
+                {
+                    TgInfo T = (TgInfo)target_Collection[i], G = (TgInfo)target_Collection[j];
+                    if(T.contrast_target_back<G.contrast_target_back)
+                    {
+                        target_Collection[i] = G;
+                        target_Collection[j] = T;
+                    }
+                }
+            }
+            //繪製有效目標
+            Bitmap bmp = new Bitmap(f.imagewidth, f.imageheight);
+            for(int k = 0; k < 10; k++)
+            {
+                TgInfo T = (TgInfo)target_Collection[k];
+                for(int m = 0; m < T.targetPointList.Count; m++)
+                {
+                    Point p = (Point)T.targetPointList[m];
+                    bmp.SetPixel(p.X, p.Y, Color.Black);
+                }
+            }
+            pictureBox1.Image = bmp;
+            basemap_Copy = (Bitmap)bmp.Clone();
+        }
     }
+    
 }
