@@ -16,15 +16,17 @@ namespace 車牌辨識
         FastPixel f = new FastPixel();//宣告快速繪圖物件
         int BlockBrightnessDimension = 10;//計算區域亮度區塊的寬與高
         int[,] BrightnessThreshold;//每一區塊的平均亮度，二值化門檻值
-        int minHeight = 16;
-        int maxHeight = 100;
+        int minHeight = 20;
+        int maxHeight = 80;//有效目標高度範圍
         int minWidth = 2;
-        int maxWidth = 100;
+        int maxWidth = 80;//有效目標寬度範圍
+        int Tgmax = 20;//進入決選範圍的最明顯目標上限
         byte[,] arrayGray;//灰階陣列
         byte[,] arrayBinary;//二值化陣列
         byte[,] arrayOutline;//輪廓線陣列
         ArrayList target_Collection;//目標物件集合
         Bitmap basemap_Copy;//底圖副本
+        Rectangle rec_target;//收集目標範圍框
 
         public Form1()
         {
@@ -194,6 +196,7 @@ namespace 車牌辨識
         //輪廓線
         private void outlineToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            arrayBinary = DoBinary(arrayGray);
             arrayOutline = Outline(arrayBinary);
             pictureBox1.Image = f.BWImg(arrayOutline);
         }
@@ -327,7 +330,7 @@ namespace 車牌辨識
                                     if (b[ii, jj] == 0) continue;//非輪廓點忽略
                                     Point k = new Point(ii, jj);//建立點物件
                                     nc.Add(k);//本輪搜尋新增的輪廓點
-                                    G.targetPointList.Add(k);
+                                    G.targetPointList.Add(k);//點集合
                                     G.targetPoint += 1;//點數累計
                                     if (ii < G.x_max_negative) G.x_max_negative = ii;
                                     if (ii > G.x_max_positive) G.x_max_positive = ii;
@@ -341,19 +344,53 @@ namespace 車牌辨識
                     if (arrayBinary[i - 1, j] == 1) continue;//排除白色區塊的負目標，起點左邊是黑點
                     G.width = G.x_max_positive - G.x_max_negative + 1;//寬度計算
                     G.height = G.y_max_positive - G.y_max_negative + 1;//高度計算
+                    //以寬高大小篩選目標
+                    if (G.height < minHeight) continue;
+                    if (G.height > maxHeight) continue;
+                    if (G.width < minWidth) continue;
+                    if (G.width > maxWidth) continue;
+                    G.x_target = (G.x_max_negative + G.x_max_positive) / 2;G.y_target = (G.y_max_negative + G.y_max_positive) / 2;//中心點
+                    //計算目標的對比度
+                    for(int m = 0; m < G.targetPointList.Count; m++)
+                    {
+                        int pm = PointPm((Point)G.targetPointList[m]);
+                        if (pm > G.contrast_target_back) G.contrast_target_back = pm;//最高對比度的輪廓點
+                    }
                     A.Add(G);//加入有效目標集合
                 }
             }
-            return A;//回傳目標物件集合
+            //以對比度排序
+            for(int i = 0; i <= Tgmax; i++)
+            {
+                if (i > A.Count - 1) break;
+                for(int j = i + 1; j < A.Count; j++)
+                {
+                    TgInfo T = (TgInfo)A[i], G = (TgInfo)A[j];
+                    if(T.contrast_target_back<G.contrast_target_back)//互換位置，高對比目標在前
+                    {
+                        A[i] = G;
+                        A[j] = T;
+                    }
+                }
+            }
+            //取得Tgmax個最明顯的目標輸出
+            target_Collection = new ArrayList();
+            for(int i = 0; i < Tgmax; i++)
+            {
+                if (i > A.Count - 1) break;//超過總目標數
+                TgInfo T = (TgInfo)A[i];T.ID_contrast = i;//建立以對比度排序的序號
+                target_Collection.Add(T);
+            }
+            return target_Collection;//回傳目標物件集合
         }
 
-        //建立目標物件
+        //建立合格目標物件集合
         private void targetsToolStripMenuItem_Click(object sender, EventArgs e)
         {
             target_Collection = getTargets(arrayOutline);//建立目標物件集合
-            //繪製目標輪廓點
+            //繪製有效目標輪廓點
             Bitmap bmp = new Bitmap(f.imagewidth, f.imageheight);
-            for(int k = 0; k < target_Collection.Count - 1; k++)
+            for(int k = 0; k <= 10; k++)
             {
                 TgInfo T = (TgInfo)target_Collection[k];
                 for(int m = 0; m < T.targetPointList.Count; m++)
@@ -363,6 +400,7 @@ namespace 車牌辨識
                 }
             }
             pictureBox1.Image = bmp;
+            basemap_Copy = (Bitmap)bmp.Clone();
         }
 
         //依據目標大小篩選目標
@@ -446,6 +484,100 @@ namespace 車牌辨識
             }
             pictureBox1.Image = bmp;
             basemap_Copy = (Bitmap)bmp.Clone();
+        }
+
+        //二值化
+        private byte[,]DoBinary(byte[,]b)
+        {
+            BrightnessThreshold = ThresholdBuild(b);
+            arrayBinary = new byte[f.imagewidth, f.imageheight];
+            for(int i = 1; i < f.imagewidth - 1; i++)
+            {
+                int x = i / BlockBrightnessDimension;
+                for(int j = 1; j < f.imageheight - 1; j++)
+                {
+                    int y = j / BlockBrightnessDimension;
+                    if (f.arrayG[i, j] < BrightnessThreshold[x, y])
+                    {
+                        arrayBinary[i, j] = 1;
+                    }
+                }
+            }
+            return arrayBinary;
+        }
+
+        //找車牌字元目標群組
+        private ArrayList AlignTgs(ArrayList C)
+        {
+            ArrayList R = new ArrayList();
+            int pmx = 0;//最佳目標組合與最佳對比度
+            for(int i = 0; i < C.Count; i++)
+            {
+                TgInfo T = (TgInfo)C[i];//核心目標
+                ArrayList D = new ArrayList();
+                int Dm = 0;//此輪搜尋的目標集合
+                D.Add(T);
+                Dm = T.contrast_target_back;//加入搜尋起點目標
+                //搜尋X範圍
+                int x1 = (int)(T.x_target - T.height * 2.5);
+                int x2 = (int)(T.x_target + T.height * 2.5);
+                //搜尋Y範圍
+                int y1 = (int)(T.y_target - T.height * 1.5);
+                int y2 = (int)(T.y_target + T.height * 1.5);
+                for(int j=0;j<C.Count;j++)
+                {
+                    if (i == j) continue;//與起點重複略過
+                    TgInfo G = (TgInfo)C[j];
+                    if (G.x_target < x1) continue;
+                    if (G.x_target >x2) continue;
+                    if (G.y_target < y1) continue;
+                    if (G.y_target > y2) continue;
+                    if (G.width > T.height) continue;//目標寬度太大略過
+                    if (G.height > T.height * 1.5) continue;//目標高度太大略過
+                    D.Add(G);Dm += G.contrast_target_back;//合格目標加入集合
+                    if (D.Count >= 7) break;//目標蒐集個數已滿跳離迴圈
+
+                }
+                if(Dm>pmx)//對比度高於之前的目標集合
+                {
+                    pmx = Dm;
+                    R = D;
+                    rec_target = new Rectangle(x1, y1, x2 - x1 + 1, y2 - y1 + 1);//搜尋範圍
+                }
+            }
+            return R;
+        }
+
+        //找車牌字元目標群組
+        private void alignToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            ArrayList R = AlignTgs(target_Collection);//找到最多七個的字元目標
+            Bitmap bmp = (Bitmap)basemap_Copy.Clone();
+            for(int k = 0; k < R.Count; k++)
+            {
+                TgInfo T = (TgInfo)R[k];
+                if(k==0)//搜尋的中心目標畫成實心
+                {
+                    for (int i = T.x_max_negative; i <= T.x_max_positive; i++)
+                    {
+                        for (int j = T.y_max_negative; j <= T.y_max_positive; j++)
+                        {
+                            if (arrayBinary[i, j] == 1) bmp.SetPixel(i, j, Color.Red);
+                        }
+                    }
+                }
+                else//畫輪廓
+                {
+                    for(int m = 0; m < T.targetPointList.Count; m++)
+                    {
+                        Point p = (Point)T.targetPointList[m];
+                        bmp.SetPixel(p.X, p.Y, Color.Red);
+                    }
+                }
+            }
+            Graphics Gr = Graphics.FromImage(bmp);//繪製搜尋區
+            Gr.DrawRectangle(Pens.Lime, rec_target);
+            pictureBox1.Image = bmp;
         }
     }
     

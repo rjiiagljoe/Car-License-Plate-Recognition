@@ -48,6 +48,7 @@ namespace 車牌辨識
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
             this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
+            this.alignToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.SuspendLayout();
@@ -69,7 +70,8 @@ namespace 車牌辨識
             this.saveImageToolStripMenuItem,
             this.targetsToolStripMenuItem,
             this.filterToolStripMenuItem,
-            this.sortToolStripMenuItem});
+            this.sortToolStripMenuItem,
+            this.alignToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
             this.menuStrip1.Size = new System.Drawing.Size(958, 24);
@@ -195,6 +197,13 @@ namespace 車牌辨識
             // 
             this.openFileDialog1.FileName = "openFileDialog1";
             // 
+            // alignToolStripMenuItem
+            // 
+            this.alignToolStripMenuItem.Name = "alignToolStripMenuItem";
+            this.alignToolStripMenuItem.Size = new System.Drawing.Size(48, 20);
+            this.alignToolStripMenuItem.Text = "Align";
+            this.alignToolStripMenuItem.Click += new System.EventHandler(this.alignToolStripMenuItem_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
@@ -235,6 +244,7 @@ namespace 車牌辨識
         private System.Windows.Forms.ToolStripMenuItem targetsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem filterToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem sortToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem alignToolStripMenuItem;
     }
 }
 
