@@ -26,7 +26,15 @@ namespace 車牌辨識
         byte[,] arrayOutline;//輪廓線陣列
         ArrayList target_Collection;//目標物件集合
         Bitmap basemap_Copy;//底圖副本
-        Rectangle rec_target;//收集目標範圍框
+        Rectangle rec_Target;//收集目標範圍框
+        TgInfo target_Processing;//擇處理之目標
+        byte[,] arrayBinary_Processing;//擇處理之二值化陣列
+        static int width_StandardFontImage=25;
+        static int height_StandardFontImage=50;//標準字模影像之寬與高
+        int width_StandardCharacterTarget = 0;
+        int height_StandardCharacterTarget = 0;//標準字元目標寬高
+        Array[] arrayBinary_NormalizationCompleted;//正規化完成後的字元二值化陣列
+        double angle_LicencePlate_Inclination = 0;//車牌傾斜角度(>0為順時針傾斜)
 
         public Form1()
         {
@@ -200,10 +208,9 @@ namespace 車牌辨識
             arrayOutline = Outline(arrayBinary);
             pictureBox1.Image = f.BWImg(arrayOutline);
         }
-        //選擇顯示某目標之輪廓線
+        //點選目標
         private void pictureBox1_MouseDown(object sender, MouseEventArgs e)
         {
-            if (basemap_Copy == null) return;
             if (e.Button == MouseButtons.Left)
             {
                 int m = -1;
@@ -214,26 +221,34 @@ namespace 車牌辨識
                     if (e.X > T.x_max_positive) continue;
                     if (e.Y < T.y_max_negative) continue;
                     if (e.Y > T.y_max_positive) continue;
-                    m = k;break;
+                    m = k;break;//被點選目標
                 }
-                if (m >= 0)
+                if (m >= 0)//有選取目標時
                 {
-                    Bitmap bmp = (Bitmap)basemap_Copy.Clone();
-                    TgInfo T = (TgInfo)target_Collection[m];
-                    for(int n = 0; n < T.targetPointList.Count; n++)
+                    
+                    target_Processing = (TgInfo)target_Collection[m];//點選之目標
+                    arrayBinary_Processing = new byte[f.imagewidth, f.imageheight];//選取目標的二值化陣列
+                    for(int n = 0; n < target_Processing.targetPointList.Count; n++)
                     {
-                        Point p = (Point)T.targetPointList[n];
-                        bmp.SetPixel(p.X, p.Y, Color.Red);
+                        Point p = (Point)target_Processing.targetPointList[n];
+                        arrayBinary_Processing[p.X, p.Y] = 1;//起點
+                        //向右連通成實心影像
+                        int i = p.X + 1;
+                        while (arrayBinary[i, p.Y] == 1)
+                        {
+                            arrayBinary_Processing[i, p.Y] = 1;
+                            i += 1;
+                        }
+                        //向左連通成實心影像
+                        i = p.X - 1;
+                        while (arrayBinary[i, p.Y] == 1)
+                        {
+                            arrayBinary_Processing[i, p.Y] = 1;
+                            i -= 1;
+                        }
                     }
-                    pictureBox1.Image = bmp;
-                    //指定目標的資訊
-                    string S = "Width=" + T.width.ToString();
-                    S += "\n\r" + "Height=" + T.height.ToString();
-                    S += "\n\r" + "Contrast=" + T.contrast_target_back.ToString();
-                    S += "\n\r" + "Point=" + T.targetPoint.ToString();
-                    MessageBox.Show(S);
+                    pictureBox1.Image = f.BWImg(arrayBinary_Processing);//繪製二值化圖
                 }
-
             }
         }
 
@@ -529,20 +544,36 @@ namespace 車牌辨識
                     if (i == j) continue;//與起點重複略過
                     TgInfo G = (TgInfo)C[j];
                     if (G.x_target < x1) continue;
-                    if (G.x_target >x2) continue;
+                    if (G.x_target > x2) continue;
                     if (G.y_target < y1) continue;
                     if (G.y_target > y2) continue;
                     if (G.width > T.height) continue;//目標寬度太大略過
                     if (G.height > T.height * 1.5) continue;//目標高度太大略過
                     D.Add(G);Dm += G.contrast_target_back;//合格目標加入集合
                     if (D.Count >= 7) break;//目標蒐集個數已滿跳離迴圈
-
                 }
                 if(Dm>pmx)//對比度高於之前的目標集合
                 {
                     pmx = Dm;
                     R = D;
-                    rec_target = new Rectangle(x1, y1, x2 - x1 + 1, y2 - y1 + 1);//搜尋範圍
+                }
+            }
+            //目標群位置左右排序
+            if (R.Count > 1)
+            {
+                int n = R.Count;
+                for(int i = 0; i < n - 1; i++)
+                {
+                    for(int j = i + 1; j < n; j++)
+                    {
+                        TgInfo Ti = (TgInfo)R[i];
+                        TgInfo Tj = (TgInfo)R[j];
+                        if (Ti.x_target > Tj.x_target)
+                        {
+                            R[i] = Tj;
+                            R[j] = Ti;
+                        }
+                    }
                 }
             }
             return R;
@@ -551,33 +582,250 @@ namespace 車牌辨識
         //找車牌字元目標群組
         private void alignToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            ArrayList R = AlignTgs(target_Collection);//找到最多七個的字元目標
-            Bitmap bmp = (Bitmap)basemap_Copy.Clone();
-            for(int k = 0; k < R.Count; k++)
+            arrayBinary = DoBinary(arrayGray);//二值化
+            arrayOutline = Outline(arrayBinary);//建立輪廓點陣列
+            target_Collection = getTargets(arrayOutline);//建立目標物件集合
+            target_Collection = AlignTgs(target_Collection);//找到最多七個的字元目標群組
+            //末字中心點與首字中心點的偏移量，斜率計算參數
+            int n = target_Collection.Count;
+            int dx = ((TgInfo)target_Collection[n - 1]).x_target - ((TgInfo)target_Collection[0]).x_target;
+            int dy = ((TgInfo)target_Collection[n - 1]).y_target - ((TgInfo)target_Collection[0]).y_target;
+            angle_LicencePlate_Inclination = Math.Atan2((double)dy, (double)dx);//字元排列傾角
+            //繪製有效目標
+            Bitmap bmp = new Bitmap(f.imagewidth, f.imageheight);
+            for(int k = 0; k < target_Collection.Count; k++)
             {
-                TgInfo T = (TgInfo)R[k];
-                if(k==0)//搜尋的中心目標畫成實心
+                TgInfo T = (TgInfo)target_Collection[k];
+                for(int m = 0; m < T.targetPointList.Count; m++)
                 {
-                    for (int i = T.x_max_negative; i <= T.x_max_positive; i++)
-                    {
-                        for (int j = T.y_max_negative; j <= T.y_max_positive; j++)
-                        {
-                            if (arrayBinary[i, j] == 1) bmp.SetPixel(i, j, Color.Red);
-                        }
-                    }
+                    Point p = (Point)T.targetPointList[m];
+                    bmp.SetPixel(p.X, p.Y, Color.Black);
                 }
-                else//畫輪廓
+            }
+            pictureBox1.Image = bmp;
+        }
+
+        //旋轉目標
+        private void rotateToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            arrayBinary_Processing = RotateTg(arrayBinary_Processing, ref target_Processing, angle_LicencePlate_Inclination);//旋轉目標二值化影像
+            pictureBox1.Image = f.BWImg(arrayBinary_Processing);//繪製轉正後之影像
+        }
+        //將單一目標轉正
+        private byte[,] RotateTg(byte[,]b,ref TgInfo T,double A)
+        {
+            if (A == 0) return b;//無傾斜不須旋轉
+            if (A > 0) A = -A;//順或逆時針傾斜時需要旋轉方向相反，經過推導A應該永遠為負值
+            double[,] R = new double[2, 2];//旋轉矩陣
+            R[0, 0] = Math.Cos(A);
+            R[0, 1] = Math.Sin(A);
+            R[1, 0] = -R[0, 1];
+            R[1, 1] = R[0, 0];
+            int x0 = T.x_max_negative;
+            int y0 = T.y_max_positive;//左下角座標
+            //旋轉後之目標範圍
+            int xmn = f.imagewidth;
+            int xmx = 0;
+            int ymn = f.imageheight;
+            int ymx = 0;
+            for(int i = T.x_max_negative; i <= T.x_max_positive; i++)
+            {
+                for(int j = T.y_max_negative; j <= T.y_max_positive; j++)
                 {
-                    for(int m = 0; m < T.targetPointList.Count; m++)
+                    if (b[i, j] == 0) continue;//空點無須旋轉
+                    int x = i - x0;
+                    int y = y0 - j;//轉換螢幕座標為直角座標
+                    int xx = (int)(x * R[0, 0] + y * R[0, 1] + x0);//旋轉後x座標
+                    if (xx < 1 || xx > f.imagewidth - 2) continue;//邊界淨空
+                    int yy = (int)(y0 - (x * R[1, 0] + y * R[1, 1]));//旋轉後y座標
+                    if (yy < 1 || yy > f.imageheight - 2) continue;//邊界淨空
+                    b[i, j] = 0;
+                    b[xx, yy] = 1;
+                    //旋轉後目標的範圍偵測
+                    if (xx < xmn) xmn = xx;
+                    if (xx > xmx) xmx = xx;
+                    if (yy < ymn) ymn = yy;
+                    if (yy > ymx) ymx = yy;
+                }
+            }
+            //重設目標屬性
+            T.x_max_negative = xmn;
+            T.x_max_positive = xmx;
+            T.y_max_negative = ymn;
+            T.y_max_positive = ymx;
+            T.width = T.x_max_positive - T.x_max_negative + 1;
+            T.height = T.y_max_positive - T.y_max_negative + 1;
+            T.x_target = (T.x_max_positive + T.x_max_negative) / 2;
+            T.y_target = (T.y_max_positive + T.y_max_negative) / 2;
+            //補足因為旋轉運算時產生的數位化誤差造成的資料空點
+            for(int i = T.x_max_negative; i <= T.x_max_positive; i++)
+            {
+                for(int j = T.y_max_negative; j <= T.y_max_positive; j++)
+                {
+                    if (b[i, j] == 1) continue;
+                    if (b[i - 1, j] + b[i + 1, j] + b[i, j - 1] + b[i, j + 1] >= 3)
                     {
-                        Point p = (Point)T.targetPointList[m];
-                        bmp.SetPixel(p.X, p.Y, Color.Red);
+                        b[i, j] = 1;
                     }
                 }
             }
-            Graphics Gr = Graphics.FromImage(bmp);//繪製搜尋區
-            Gr.DrawRectangle(Pens.Lime, rec_target);
-            pictureBox1.Image = bmp;
+            return b;
+        }
+
+        //字元目標正規化到字模寬高
+        private void normalizeToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            double fx = (double)target_Processing.width / width_StandardFontImage;
+            double fy = (double)target_Processing.height / height_StandardFontImage;
+            byte[,] V = new byte[width_StandardFontImage, height_StandardFontImage];
+            for(int i = 0; i < width_StandardFontImage; i++)
+            {
+                int x = target_Processing.x_max_negative + (int)(i * fx);
+                for(int j = 0; j < height_StandardFontImage; j++)
+                {
+                    int y = target_Processing.y_max_negative + (int)(j * fy);
+                    V[i, j] = arrayBinary_Processing[x, y];
+                }
+            }
+            pictureBox1.Image = f.BWImg(V);
+        }
+
+        //完整辨識處理
+        private void correctAllToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            int n = target_Collection.Count;//目標總數
+            //旋轉所有目標
+            TgInfo[] T = new TgInfo[n];
+            Array[] M = new Array[n];
+            int[] w = new int[n];
+            int[] h = new int[n];
+            for(int k = 0; k < n; k++)
+            {
+                TgInfo G = (TgInfo)target_Collection[k];
+                M[k] = Tg2Bin(G);//建立單一目標的二值化矩陣
+                TgInfo GG = new TgInfo().Clone(G);
+                M[k] = RotateTg((byte[,])M[k], ref GG, angle_LicencePlate_Inclination);//旋轉目標
+                T[k] = GG;//儲存旋轉後的目標物件
+                w[k] = GG.width;//寬度陣列
+                h[k] = GG.height;//高度陣列
+            }
+            Array.Sort(w);
+            Array.Sort(h);//寬高度排序，小到大
+            width_StandardCharacterTarget = w[n - 2];
+            height_StandardCharacterTarget = h[n - 2];//取第二寬或高的目標為標準，避開意外沾黏的極端目標
+            //車牌全圖矩陣，字元間隔4畫素
+            byte[,] R = new byte[(width_StandardFontImage + 4) * n, height_StandardFontImage];
+            arrayBinary_NormalizationCompleted = new Array[n];
+            for(int k = 0; k < n; k++)
+            {
+                arrayBinary_NormalizationCompleted[k] = NmBin(T[k], (byte[,])M[k], width_StandardCharacterTarget, height_StandardCharacterTarget);//個別字元正規化矩陣
+                int xs = (width_StandardFontImage + 4) * k;//X偏移量
+                for(int i = 0; i < width_StandardFontImage; i++)
+                {
+                    for(int j = 0; j < height_StandardFontImage; j++)
+                    {
+                        R[xs + i, j] = ((byte[,])arrayBinary_NormalizationCompleted[k])[i, j];
+                    }
+                }
+            }
+            pictureBox1.Image = f.BWImg(R);//顯示正規化之後的車牌
+        }
+
+        //建立單一目標的二值化矩陣
+        private byte[,] Tg2Bin(TgInfo T)
+        {
+            byte[,] b = new byte[f.imagewidth, f.imageheight];//二值化陣列
+            for(int n = 0; n < T.targetPointList.Count; n++)
+            {
+                Point p = (Point)T.targetPointList[n];
+                b[p.X, p.Y] = 1;//起點
+                //向右連通成實心影像
+                int i = p.X + 1;
+                while (arrayBinary[i, p.Y] == 1)
+                {
+                    b[i, p.Y] = 1;
+                    i += 1;
+                }
+                //向左連通成實心影像
+                i = p.X - 1;
+                while (arrayBinary[i, p.Y] == 1)
+                {
+                    b[i, p.Y] = 1;
+                    i -= 1;
+                }
+            }
+            return b;
+        }
+
+        //建立正規化目標二值化陣列
+        private byte[,] NmBin(TgInfo T,byte[,] M,int mw,int mh)
+        {
+            double fx = (double)mw / width_StandardFontImage;
+            double fy = (double)mh / height_StandardFontImage;
+            byte[,] V = new byte[width_StandardFontImage, height_StandardFontImage];
+            for(int i = 0; i < width_StandardFontImage; i++)
+            {
+                int sx = 0;//過窄字元的平移量，預設不平移
+                if(T.width/mw<0.75)//過窄字元，可能為1或I
+                {
+                    sx = (mw - T.width) / 2;//平移寬度差之一半
+                }
+                int x = (int)(T.x_max_negative + i * fx - sx);
+                if (x < 0 || x > f.imagewidth - 1) continue;
+                for(int j = 0; j < height_StandardFontImage; j++)
+                {
+                    int y = T.y_max_negative + (int)(j * fy);
+                    V[i, j] = M[x, y];
+                }
+            }
+            return V;
+        }
+
+        //加隔線
+        private void addDashToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            //計算最大字元間距
+            int n = target_Collection.Count;
+            int dmx = 0;
+            int mi = 0;
+            for(int i = 0; i < n - 1; i++)
+            {
+                int d1 = ((TgInfo)target_Collection[i + 1]).x_target - ((TgInfo)target_Collection[i]).x_target;
+                int d2 = ((TgInfo)target_Collection[i + 1]).y_target - ((TgInfo)target_Collection[i]).y_target;
+                int d = (d1 * d1) + (d2 * d2);
+                if (d > dmx)
+                {
+                    dmx = d;
+                    mi = i;
+                }
+            }
+            //繪製含隔線車牌
+            //車牌全圖矩陣，字元間隔4畫素
+            byte[,] R = new byte[(width_StandardFontImage + 4) * n + 20, height_StandardFontImage];
+            for(int k = 0; k < n; k++)
+            {
+                int xs = (width_StandardFontImage + 4) * k;
+                if (k > mi) xs += 20;
+                for(int i = 0; i < width_StandardFontImage; i++)
+                {
+                    for(int j = 0; j < height_StandardFontImage; j++)
+                    {
+                        R[xs + i, j] = ((byte[,])arrayBinary_NormalizationCompleted[k])[i, j];
+                    }
+                }
+                if (k == mi)//繪製隔線
+                {
+                    xs += width_StandardFontImage + 2;
+                    for(int i = 5; i < 15; i++)
+                    {
+                        for(int j = 23; j < 27; j++)
+                        {
+                            R[xs + i, j] = 1;
+                        }
+                    }
+                }
+            }
+            pictureBox1.Image = f.BWImg(R);
         }
     }
     

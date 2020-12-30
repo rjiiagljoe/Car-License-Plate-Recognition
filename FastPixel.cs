@@ -125,5 +125,21 @@ namespace 車牌辨識
         public int x_target = 0, y_target = 0;//目標中心點座標
         public int ID_contrast = 0;//依對比度排序的序號
 
+        public TgInfo Clone(TgInfo T)
+        {
+            TgInfo G = new TgInfo();
+            G.targetPoint = T.targetPoint;
+            G.targetPointList = T.targetPointList;
+            G.x_max_negative = T.x_max_negative;
+            G.x_max_positive = T.x_max_positive;
+            G.y_max_negative = T.y_max_negative;
+            G.y_max_positive = T.y_max_positive;
+            G.width = T.width;
+            G.height = T.height;
+            G.x_target = T.x_target;
+            G.y_target = T.y_target;
+            G.ID_contrast = T.ID_contrast;
+            return G;
+        }
     }
 }

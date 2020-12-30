@@ -45,10 +45,14 @@ namespace 車牌辨識
             this.targetsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.filterToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.sortToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.alignToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.rotateToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.normalizeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.correctAllToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.addDashToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
             this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
-            this.alignToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.SuspendLayout();
@@ -71,10 +75,14 @@ namespace 車牌辨識
             this.targetsToolStripMenuItem,
             this.filterToolStripMenuItem,
             this.sortToolStripMenuItem,
-            this.alignToolStripMenuItem});
+            this.alignToolStripMenuItem,
+            this.rotateToolStripMenuItem,
+            this.normalizeToolStripMenuItem,
+            this.correctAllToolStripMenuItem,
+            this.addDashToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
-            this.menuStrip1.Size = new System.Drawing.Size(958, 24);
+            this.menuStrip1.Size = new System.Drawing.Size(1212, 24);
             this.menuStrip1.TabIndex = 0;
             this.menuStrip1.Text = "menuStrip1";
             // 
@@ -183,9 +191,44 @@ namespace 車牌辨識
             this.sortToolStripMenuItem.Text = "Sort";
             this.sortToolStripMenuItem.Click += new System.EventHandler(this.sortToolStripMenuItem_Click);
             // 
+            // alignToolStripMenuItem
+            // 
+            this.alignToolStripMenuItem.Name = "alignToolStripMenuItem";
+            this.alignToolStripMenuItem.Size = new System.Drawing.Size(48, 20);
+            this.alignToolStripMenuItem.Text = "Align";
+            this.alignToolStripMenuItem.Click += new System.EventHandler(this.alignToolStripMenuItem_Click);
+            // 
+            // rotateToolStripMenuItem
+            // 
+            this.rotateToolStripMenuItem.Name = "rotateToolStripMenuItem";
+            this.rotateToolStripMenuItem.Size = new System.Drawing.Size(57, 20);
+            this.rotateToolStripMenuItem.Text = "Rotate";
+            this.rotateToolStripMenuItem.Click += new System.EventHandler(this.rotateToolStripMenuItem_Click);
+            // 
+            // normalizeToolStripMenuItem
+            // 
+            this.normalizeToolStripMenuItem.Name = "normalizeToolStripMenuItem";
+            this.normalizeToolStripMenuItem.Size = new System.Drawing.Size(78, 20);
+            this.normalizeToolStripMenuItem.Text = "Normalize";
+            this.normalizeToolStripMenuItem.Click += new System.EventHandler(this.normalizeToolStripMenuItem_Click);
+            // 
+            // correctAllToolStripMenuItem
+            // 
+            this.correctAllToolStripMenuItem.Name = "correctAllToolStripMenuItem";
+            this.correctAllToolStripMenuItem.Size = new System.Drawing.Size(77, 20);
+            this.correctAllToolStripMenuItem.Text = "Correct All";
+            this.correctAllToolStripMenuItem.Click += new System.EventHandler(this.correctAllToolStripMenuItem_Click);
+            // 
+            // addDashToolStripMenuItem
+            // 
+            this.addDashToolStripMenuItem.Name = "addDashToolStripMenuItem";
+            this.addDashToolStripMenuItem.Size = new System.Drawing.Size(74, 20);
+            this.addDashToolStripMenuItem.Text = "Add Dash";
+            this.addDashToolStripMenuItem.Click += new System.EventHandler(this.addDashToolStripMenuItem_Click);
+            // 
             // pictureBox1
             // 
-            this.pictureBox1.Location = new System.Drawing.Point(0, 27);
+            this.pictureBox1.Location = new System.Drawing.Point(12, 27);
             this.pictureBox1.Name = "pictureBox1";
             this.pictureBox1.Size = new System.Drawing.Size(788, 422);
             this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
@@ -197,19 +240,12 @@ namespace 車牌辨識
             // 
             this.openFileDialog1.FileName = "openFileDialog1";
             // 
-            // alignToolStripMenuItem
-            // 
-            this.alignToolStripMenuItem.Name = "alignToolStripMenuItem";
-            this.alignToolStripMenuItem.Size = new System.Drawing.Size(48, 20);
-            this.alignToolStripMenuItem.Text = "Align";
-            this.alignToolStripMenuItem.Click += new System.EventHandler(this.alignToolStripMenuItem_Click);
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoSize = true;
-            this.ClientSize = new System.Drawing.Size(958, 450);
+            this.ClientSize = new System.Drawing.Size(1212, 450);
             this.Controls.Add(this.pictureBox1);
             this.Controls.Add(this.menuStrip1);
             this.MainMenuStrip = this.menuStrip1;
@@ -245,6 +281,10 @@ namespace 車牌辨識
         private System.Windows.Forms.ToolStripMenuItem filterToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem sortToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem alignToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem rotateToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem normalizeToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem correctAllToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem addDashToolStripMenuItem;
     }
 }
 
