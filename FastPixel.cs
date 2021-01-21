@@ -142,4 +142,12 @@ namespace 車牌辨識
             return G;
         }
     }
+
+    //最佳字元結構
+    class ChInfo
+    {
+        public char Ch;//最符合字元;
+        public int fit_Score;//符合度評分
+        public int kind_6or7;//六或七碼字元，0→六碼，1→七碼
+    }
 }

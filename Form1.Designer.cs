@@ -50,9 +50,11 @@ namespace 車牌辨識
             this.normalizeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.correctAllToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.addDashToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.recognizeAllToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
             this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
+            this.leftExtToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.SuspendLayout();
@@ -79,10 +81,12 @@ namespace 車牌辨識
             this.rotateToolStripMenuItem,
             this.normalizeToolStripMenuItem,
             this.correctAllToolStripMenuItem,
-            this.addDashToolStripMenuItem});
+            this.addDashToolStripMenuItem,
+            this.recognizeAllToolStripMenuItem,
+            this.leftExtToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
-            this.menuStrip1.Size = new System.Drawing.Size(1212, 24);
+            this.menuStrip1.Size = new System.Drawing.Size(1375, 24);
             this.menuStrip1.TabIndex = 0;
             this.menuStrip1.Text = "menuStrip1";
             // 
@@ -226,6 +230,13 @@ namespace 車牌辨識
             this.addDashToolStripMenuItem.Text = "Add Dash";
             this.addDashToolStripMenuItem.Click += new System.EventHandler(this.addDashToolStripMenuItem_Click);
             // 
+            // recognizeAllToolStripMenuItem
+            // 
+            this.recognizeAllToolStripMenuItem.Name = "recognizeAllToolStripMenuItem";
+            this.recognizeAllToolStripMenuItem.Size = new System.Drawing.Size(96, 20);
+            this.recognizeAllToolStripMenuItem.Text = "Recognize All";
+            this.recognizeAllToolStripMenuItem.Click += new System.EventHandler(this.recognizeAllToolStripMenuItem_Click);
+            // 
             // pictureBox1
             // 
             this.pictureBox1.Location = new System.Drawing.Point(12, 27);
@@ -240,17 +251,25 @@ namespace 車牌辨識
             // 
             this.openFileDialog1.FileName = "openFileDialog1";
             // 
+            // leftExtToolStripMenuItem
+            // 
+            this.leftExtToolStripMenuItem.Name = "leftExtToolStripMenuItem";
+            this.leftExtToolStripMenuItem.Size = new System.Drawing.Size(63, 20);
+            this.leftExtToolStripMenuItem.Text = "Left Ext.";
+            this.leftExtToolStripMenuItem.Click += new System.EventHandler(this.leftExtToolStripMenuItem_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoSize = true;
-            this.ClientSize = new System.Drawing.Size(1212, 450);
+            this.ClientSize = new System.Drawing.Size(1375, 450);
             this.Controls.Add(this.pictureBox1);
             this.Controls.Add(this.menuStrip1);
             this.MainMenuStrip = this.menuStrip1;
             this.Name = "Form1";
             this.Text = "Form1";
+            this.Load += new System.EventHandler(this.Form1_Load);
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
@@ -285,6 +304,8 @@ namespace 車牌辨識
         private System.Windows.Forms.ToolStripMenuItem normalizeToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem correctAllToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem addDashToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem recognizeAllToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem leftExtToolStripMenuItem;
     }
 }
 
