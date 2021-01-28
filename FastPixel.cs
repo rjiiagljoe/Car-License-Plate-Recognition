@@ -115,6 +115,7 @@ namespace 車牌辨識
         }
     }
 
+    //目標物件類別
     class TgInfo
     {
         public int targetPoint = 0;//目標點數
@@ -149,5 +150,17 @@ namespace 車牌辨識
         public char Ch;//最符合字元;
         public int fit_Score;//符合度評分
         public int kind_6or7;//六或七碼字元，0→六碼，1→七碼
+    }
+
+    //車牌資料結構
+    class LPInfo
+    {
+        public string license_plate_number;//車牌號碼
+        public int Score;//符合度
+        public int N_target;//車牌字元目標個數
+        public int kind_67;//六或七碼字型
+        public int xmn, xmx, ymn, ymx;//車牌四邊極值
+        public int width, height;//車牌寬與高
+        public int cx, cy;//車牌中心點座標
     }
 }

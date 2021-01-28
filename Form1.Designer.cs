@@ -51,12 +51,19 @@ namespace 車牌辨識
             this.correctAllToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.addDashToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.recognizeAllToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.leftExtToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.recognizeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
             this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
-            this.leftExtToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.panel1 = new System.Windows.Forms.Panel();
+            this.radioButton1 = new System.Windows.Forms.RadioButton();
+            this.radioButton2 = new System.Windows.Forms.RadioButton();
+            this.radioButton3 = new System.Windows.Forms.RadioButton();
+            this.radioButton4 = new System.Windows.Forms.RadioButton();
             this.menuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
+            this.panel1.SuspendLayout();
             this.SuspendLayout();
             // 
             // menuStrip1
@@ -83,10 +90,11 @@ namespace 車牌辨識
             this.correctAllToolStripMenuItem,
             this.addDashToolStripMenuItem,
             this.recognizeAllToolStripMenuItem,
-            this.leftExtToolStripMenuItem});
+            this.leftExtToolStripMenuItem,
+            this.recognizeToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
-            this.menuStrip1.Size = new System.Drawing.Size(1375, 24);
+            this.menuStrip1.Size = new System.Drawing.Size(1423, 24);
             this.menuStrip1.TabIndex = 0;
             this.menuStrip1.Text = "menuStrip1";
             // 
@@ -237,6 +245,20 @@ namespace 車牌辨識
             this.recognizeAllToolStripMenuItem.Text = "Recognize All";
             this.recognizeAllToolStripMenuItem.Click += new System.EventHandler(this.recognizeAllToolStripMenuItem_Click);
             // 
+            // leftExtToolStripMenuItem
+            // 
+            this.leftExtToolStripMenuItem.Name = "leftExtToolStripMenuItem";
+            this.leftExtToolStripMenuItem.Size = new System.Drawing.Size(63, 20);
+            this.leftExtToolStripMenuItem.Text = "Left Ext.";
+            this.leftExtToolStripMenuItem.Click += new System.EventHandler(this.leftExtToolStripMenuItem_Click);
+            // 
+            // recognizeToolStripMenuItem
+            // 
+            this.recognizeToolStripMenuItem.Name = "recognizeToolStripMenuItem";
+            this.recognizeToolStripMenuItem.Size = new System.Drawing.Size(79, 20);
+            this.recognizeToolStripMenuItem.Text = "Recognize";
+            this.recognizeToolStripMenuItem.Click += new System.EventHandler(this.recognizeToolStripMenuItem_Click);
+            // 
             // pictureBox1
             // 
             this.pictureBox1.Location = new System.Drawing.Point(12, 27);
@@ -251,19 +273,72 @@ namespace 車牌辨識
             // 
             this.openFileDialog1.FileName = "openFileDialog1";
             // 
-            // leftExtToolStripMenuItem
+            // panel1
             // 
-            this.leftExtToolStripMenuItem.Name = "leftExtToolStripMenuItem";
-            this.leftExtToolStripMenuItem.Size = new System.Drawing.Size(63, 20);
-            this.leftExtToolStripMenuItem.Text = "Left Ext.";
-            this.leftExtToolStripMenuItem.Click += new System.EventHandler(this.leftExtToolStripMenuItem_Click);
+            this.panel1.Controls.Add(this.radioButton4);
+            this.panel1.Controls.Add(this.radioButton3);
+            this.panel1.Controls.Add(this.radioButton2);
+            this.panel1.Controls.Add(this.radioButton1);
+            this.panel1.Location = new System.Drawing.Point(1139, 132);
+            this.panel1.Name = "panel1";
+            this.panel1.Size = new System.Drawing.Size(200, 175);
+            this.panel1.TabIndex = 2;
+            // 
+            // radioButton1
+            // 
+            this.radioButton1.AutoSize = true;
+            this.radioButton1.Location = new System.Drawing.Point(20, 17);
+            this.radioButton1.Name = "radioButton1";
+            this.radioButton1.Size = new System.Drawing.Size(46, 16);
+            this.radioButton1.TabIndex = 0;
+            this.radioButton1.TabStop = true;
+            this.radioButton1.Text = "Gray";
+            this.radioButton1.UseVisualStyleBackColor = true;
+            this.radioButton1.CheckedChanged += new System.EventHandler(this.radioButton1_CheckedChanged);
+            // 
+            // radioButton2
+            // 
+            this.radioButton2.AutoSize = true;
+            this.radioButton2.Location = new System.Drawing.Point(20, 40);
+            this.radioButton2.Name = "radioButton2";
+            this.radioButton2.Size = new System.Drawing.Size(55, 16);
+            this.radioButton2.TabIndex = 1;
+            this.radioButton2.TabStop = true;
+            this.radioButton2.Text = "Binary";
+            this.radioButton2.UseVisualStyleBackColor = true;
+            this.radioButton2.CheckedChanged += new System.EventHandler(this.radioButton2_CheckedChanged);
+            // 
+            // radioButton3
+            // 
+            this.radioButton3.AutoSize = true;
+            this.radioButton3.Location = new System.Drawing.Point(20, 63);
+            this.radioButton3.Name = "radioButton3";
+            this.radioButton3.Size = new System.Drawing.Size(57, 16);
+            this.radioButton3.TabIndex = 2;
+            this.radioButton3.TabStop = true;
+            this.radioButton3.Text = "Outline";
+            this.radioButton3.UseVisualStyleBackColor = true;
+            this.radioButton3.CheckedChanged += new System.EventHandler(this.radioButton3_CheckedChanged);
+            // 
+            // radioButton4
+            // 
+            this.radioButton4.AutoSize = true;
+            this.radioButton4.Location = new System.Drawing.Point(20, 86);
+            this.radioButton4.Name = "radioButton4";
+            this.radioButton4.Size = new System.Drawing.Size(57, 16);
+            this.radioButton4.TabIndex = 3;
+            this.radioButton4.TabStop = true;
+            this.radioButton4.Text = "Targets";
+            this.radioButton4.UseVisualStyleBackColor = true;
+            this.radioButton4.CheckedChanged += new System.EventHandler(this.radioButton4_CheckedChanged);
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoSize = true;
-            this.ClientSize = new System.Drawing.Size(1375, 450);
+            this.ClientSize = new System.Drawing.Size(1423, 450);
+            this.Controls.Add(this.panel1);
             this.Controls.Add(this.pictureBox1);
             this.Controls.Add(this.menuStrip1);
             this.MainMenuStrip = this.menuStrip1;
@@ -273,6 +348,8 @@ namespace 車牌辨識
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
+            this.panel1.ResumeLayout(false);
+            this.panel1.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -306,6 +383,12 @@ namespace 車牌辨識
         private System.Windows.Forms.ToolStripMenuItem addDashToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem recognizeAllToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem leftExtToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem recognizeToolStripMenuItem;
+        private System.Windows.Forms.Panel panel1;
+        private System.Windows.Forms.RadioButton radioButton4;
+        private System.Windows.Forms.RadioButton radioButton3;
+        private System.Windows.Forms.RadioButton radioButton2;
+        private System.Windows.Forms.RadioButton radioButton1;
     }
 }
 

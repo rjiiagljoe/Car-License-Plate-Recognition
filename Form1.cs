@@ -24,7 +24,7 @@ namespace 車牌辨識
         byte[,] arrayGray;//灰階陣列
         byte[,] arrayBinary;//二值化陣列
         byte[,] arrayOutline;//輪廓線陣列
-        ArrayList target_Collection;//目標物件集合
+        ArrayList target_Collection,Atarget_Collection;//目標物件集合
         Bitmap basemap_Copy;//底圖副本
         Rectangle rec_Target;//收集目標範圍框
         TgInfo target_Processing;//擇處理之目標
@@ -38,6 +38,7 @@ namespace 車牌辨識
         byte[,,,] array_License_Plate = new byte[2, 36, width_StandardFontImage, height_StandardFontImage];//六與七碼車牌所有英數字二值化陣列
         byte[,,] array_Deform_69 = new byte[2, width_StandardFontImage, height_StandardFontImage];//變形的六碼車牌6與9字型
         string License_Plate = "";//車牌號碼
+        bool[] viewed_Target_Annotation;//已檢視目標註記
         //字元對照表
         //0-9→0-9
         //10→A，11→B，12→C，13→D，14→E，15→F，16→G，17→H，18→I，19→J
@@ -965,26 +966,27 @@ namespace 車牌辨識
         }
 
         //檢驗車牌是否正確的程式
-        private string ChkLP(string S,int V)
+        private LPInfo ChkLP(LPInfo R)
         {
-            if(V<500)return"";//符合度低於及格分數
-            if(S.Length<5)return"";//包含分隔線在內字數小於5
-            int m=S.IndexOf('-');//格線位置
-            if(m==1)return"";//沒有1-x的字數區段格式
-            return S;//合格車牌
+            if(R.Score<600)return new LPInfo();//符合度低於及格分數
+            if(R.license_plate_number.Length<5)return new LPInfo();//包含分隔線在內字數小於5
+            int m=R.license_plate_number.IndexOf('-');//格線位置
+            if(m==1)return new LPInfo();//沒有1-x的字數區段格式
+            return R;//合格車牌
         }
 
         //嘗試依據英數字規範修改車牌答案
-        private string ChkED(string S)
+        private LPInfo ChkED(LPInfo R)
         {
-            char[] C=S.ToCharArray();//字串轉成字元陣列
-            int n1=S.IndexOf('-');//第一區段長度
+            if (R.license_plate_number == null) return R;
+            char[] C=R.license_plate_number.ToCharArray();//字串轉成字元陣列
+            int n1=R.license_plate_number.IndexOf('-');//第一區段長度
             int n2 = C.Length - n1 - 1;//第二區段長度
             int d1 = 0;
             int d2 = 0;//數字區的起終點
             if (n1 > n2) { d1 = 0; d2 = n1 - 1; }//第一區段較長
             if (n2 > n1) { d1 = n1 + 1;d2 = C.Length - 1; }//第二區段較長
-            if (d2 == 0) return S;//無法判定純數字區段(2-2或3-3)
+            if (d2 == 0) return R;//無法判定純數字區段(2-2或3-3)
             //嘗試將純數字區段的英文字改成數字
             for(int i = d1; i <= d2; i++)
             {
@@ -999,12 +1001,12 @@ namespace 車牌辨識
                 }
             }
             //重組字串
-            S = "";
+            R.license_plate_number = "";
             for(int i = 0; i < C.Length; i++)
             {
-                S += C[i];
+                R.license_plate_number += C[i];
             }
-            return S;
+            return R;
         }
         //嘗試將英文字母變成相似的數字
         private char E2D(char C)
@@ -1021,6 +1023,37 @@ namespace 車牌辨識
             if (C == '8') return 'B';
             if (C == '0') return 'D';
             return C;
+        }
+
+        //辨識整個車牌
+        private void recognizeToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            arrayBinary = DoBinary(arrayGray);//二值化
+            arrayOutline = Outline(arrayBinary);//建立輪廓點陣列
+            Atarget_Collection = getTargets(arrayOutline);//建立所有目標物件集合
+            viewed_Target_Annotation = new bool[Atarget_Collection.Count];
+            LPInfo R = new LPInfo();
+            //目標搜尋辨識
+            for(int k = 0; k < 3; k++)
+            {
+                R = getLP(Atarget_Collection);
+                if (R.Score > 0) break;//有合理答案立即跳出迴圈
+            }
+            //負片辨識
+            if (R.Score == 0)
+            {
+                arrayGray = Negative(arrayGray);
+                arrayBinary = DoBinary(arrayGray);//二值化
+                arrayOutline = Outline(arrayBinary);//建立輪廓點陣列
+                Atarget_Collection = getTargets(arrayOutline);//建立所有目標物件集合
+                viewed_Target_Annotation = new bool[Atarget_Collection.Count];
+                for(int k = 0; k < 3; k++)
+                {
+                    R = getLP(Atarget_Collection);
+                    if (R.Score > 0) break;//有合理答案立即跳出迴圈
+                }
+            }
+            this.Text = R.license_plate_number + "," + R.Score.ToString() + "," + R.cx.ToString() + "," + R.cy.ToString();
         }
 
         //左方外插一字
@@ -1064,6 +1097,142 @@ namespace 車牌辨識
             Gr.DrawRectangle(Pens.Red, rec);
             pictureBox1.Image = bmp;
             MessageBox.Show(License_Plate);
+        }
+
+        //灰階
+        private void radioButton1_CheckedChanged(object sender, EventArgs e)
+        {
+            if (radioButton1.Checked && arrayGray!=null)
+            {
+                pictureBox1.Image = f.GrayImg(arrayGray);
+            }
+        }
+        //二值化圖
+        private void radioButton2_CheckedChanged(object sender, EventArgs e)
+        {
+            if (radioButton2.Checked && arrayBinary!=null)
+            {
+                pictureBox1.Image = f.BWImg(arrayBinary);
+            }
+        }
+        //輪廓線
+        private void radioButton3_CheckedChanged(object sender, EventArgs e)
+        {
+            if (radioButton3.Checked && arrayOutline!=null)
+            {
+                pictureBox1.Image = f.BWImg(arrayOutline);
+            }
+        }
+        //所有合格目標
+        private void radioButton4_CheckedChanged(object sender, EventArgs e)
+        {
+            if (radioButton4.Checked)
+            {
+                if (Atarget_Collection == null) return;
+                Bitmap bmp = new Bitmap(f.imagewidth, f.imageheight);
+                for(int k = 0; k < Atarget_Collection.Count; k++)
+                {
+                    TgInfo T = (TgInfo)Atarget_Collection[k];
+                    for(int m = 0; m < T.targetPointList.Count; m++)
+                    {
+                        Point p = (Point)T.targetPointList[m];
+                        bmp.SetPixel(p.X, p.Y, Color.Black);
+                    }
+                }
+                pictureBox1.Image = bmp;
+            }
+        }
+
+        //依據可能目標組合辨識車牌
+        private LPInfo getLP(ArrayList A)
+        {
+            LPInfo R = new LPInfo();//建立車牌資訊物件
+            target_Collection = AlignTgs(A);//找到最多七個的字元目標組合
+            int n = target_Collection.Count;//目標個數
+            for(int i = 0; i < n; i++)
+            {
+                viewed_Target_Annotation[i] = true;//標示目標已處理
+            }
+            if (n < 4) return R;//目標數目不足以構成車牌
+            R.N_target = n;//車牌目標個數
+            //末字中心點與首字中心點的偏移量，斜率計算參數
+            int dx = ((TgInfo)target_Collection[n - 1]).x_target - ((TgInfo)target_Collection[0]).x_target;
+            int dy = ((TgInfo)target_Collection[n - 1]).y_target - ((TgInfo)target_Collection[0]).y_target;
+            angle_LicencePlate_Inclination = Math.Atan2((double)dy, (double)dx);//字元排列傾角
+            //旋轉所有目標
+            TgInfo[] T = new TgInfo[n];
+            Array[] M = new Array[n];
+            int[] w = new int[n];
+            int[] h = new int[n];
+            R.xmn = f.imagewidth;
+            R.xmx = 0;
+            R.ymn = f.imageheight;
+            R.ymx = 0;//車牌四面極值
+            for(int k = 0; k < n; k++)
+            {
+                TgInfo G = (TgInfo)target_Collection[k];
+                M[k] = Tg2Bin(G);//建立單一目標的二值化矩陣
+                M[k] = RotateTg((byte[,])M[k], ref G, angle_LicencePlate_Inclination);//旋轉目標
+                T[k] = G;//儲存旋轉後的目標物件
+                w[k] = G.width;//寬度陣列
+                h[k] = G.height;//高度陣列
+                if (G.x_max_negative < R.xmn) R.xmn = G.x_max_negative;
+                if (G.x_max_positive > R.xmx) R.xmx = G.x_max_positive;
+                if (G.y_max_negative < R.ymn) R.ymn = G.y_max_negative;
+                if (G.y_max_positive > R.ymx) R.ymx = G.y_max_positive;
+            }
+            R.width = R.xmx - R.xmn + 1;
+            R.height = R.ymx - R.ymn + 1;//車牌寬高
+            R.cx = (R.xmn + R.xmx) / 2;
+            R.cy = (R.ymn + R.ymx) / 2;//車牌中心點
+            Array.Sort(w);
+            Array.Sort(h);//寬高度排序，小到大
+            int mw = w[n - 2];
+            int mh = h[n - 2];//取第二寬或高的目標為標準，避開意外沾連的極端目標
+            //目標正規化→寬高符合字模
+            arrayBinary_NormalizationCompleted = new Array[n];//正規化後之字元二值化陣列
+            for(int k = 0; k < n; k++)
+            {
+                arrayBinary_NormalizationCompleted[k] = NmBin(T[k], (byte[,])M[k], mw, mh);
+            }
+            //計算最大字元間距與位置
+            int dmx = 0;
+            int mi = 0;
+            for(int i = 0; i < n - 1; i++)
+            {
+                int d1 = ((TgInfo)target_Collection[i + 1]).x_target - ((TgInfo)target_Collection[i]).x_target;
+                int d2 = ((TgInfo)target_Collection[i + 1]).y_target - ((TgInfo)target_Collection[i]).y_target;
+                int d = d1 ^ 2 + d2 ^ 2;
+                if (d > dmx)
+                {
+                    dmx = d;
+                    mi = i;
+                }
+            }
+            for(int i = 0; i < arrayBinary_NormalizationCompleted.Length; i++)
+            {
+                ChInfo k = BestC((byte[,])arrayBinary_NormalizationCompleted[i]);
+                R.license_plate_number += k.Ch;//車牌字串累加
+                R.Score += k.fit_Score;//字源符合度累加
+                if (i == mi) R.license_plate_number += '-';
+            }
+            R.Score /= arrayBinary_NormalizationCompleted.Length;
+            R = ChkLP(R);//檢查是否為合格車牌
+            R = ChkED(R);//修正英數字
+            return R;//回傳車牌資料
+        }
+
+        //負片
+        private byte[,] Negative(byte[,] b)
+        {
+            for(int i = 0; i < f.imagewidth; i++)
+            {
+                for(int j = 0; j < f.imageheight; j++)
+                {
+                    b[i, j] = (byte)(255 - b[i, j]);
+                }
+            }
+            return b;
         }
     }
     
