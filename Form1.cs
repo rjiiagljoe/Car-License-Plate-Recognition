@@ -46,6 +46,9 @@ namespace 車牌辨識
         //30→U，31→V，32→W，33→X，34→Y，35→Z
         char[] Ch = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
             'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N','O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z' };
+        byte[,] V;//虛擬車牌二值化陣列
+
+
 
         public Form1()
         {
@@ -1209,6 +1212,21 @@ namespace 車牌辨識
                     mi = i;
                 }
             }
+            //車牌虛擬矩陣，字元間隔2畫素
+            int wd = width_StandardFontImage + (width_StandardFontImage + 2) * n + width_StandardFontImage;
+            V = new byte[wd, height_StandardFontImage];
+            for(int k = 0; k < n; k++)
+            {
+                int xs = width_StandardFontImage + (width_StandardFontImage + 2) * k;//X偏移量
+                for(int i = 0; i < width_StandardFontImage; i++)
+                {
+                    for(int j = 0; j < height_StandardFontImage; j++)
+                    {
+                        V[xs + i, j] = ((byte[,])arrayBinary_NormalizationCompleted[k])[i, j];
+                    }
+                }
+            }
+            IncCorrect(V);//字元傾倒偵測校正
             for(int i = 0; i < arrayBinary_NormalizationCompleted.Length; i++)
             {
                 ChInfo k = BestC((byte[,])arrayBinary_NormalizationCompleted[i]);
@@ -1222,6 +1240,16 @@ namespace 車牌辨識
             return R;//回傳車牌資料
         }
 
+        //車牌
+        private void radioButton5_CheckedChanged(object sender, EventArgs e)
+        {
+            if (radioButton5.Checked)
+            {
+                if (V == null) return;
+                pictureBox1.Image = f.BWImg(V);
+            }
+        }
+
         //負片
         private byte[,] Negative(byte[,] b)
         {
@@ -1233,6 +1261,83 @@ namespace 車牌辨識
                 }
             }
             return b;
+        }
+
+        //左右傾倒校正
+        private void IncCorrect(byte[,] V)
+        {
+            int n = target_Collection.Count;//目標個數
+            int wd = width_StandardFontImage + (width_StandardFontImage + 2) * n + width_StandardFontImage;//虛擬車牌二值化陣列寬度
+            int mx = 0,mk = 0;//空白垂直線最大數，最佳偏移量
+            byte[,] S0 = new byte[wd, height_StandardFontImage];//最佳校正之車牌二值化陣列
+            for(int sx = -15; sx < 16; sx++)//嘗試偏移量
+            {
+                byte[,] S = new byte[wd, height_StandardFontImage];//虛擬車牌陣列
+                double z = (double)sx / (height_StandardFontImage - 1);//每一畫素高度的X錯位量
+                for(int j = 0; j < height_StandardFontImage; j++)
+                {
+                    int dx = (int)(z * (height_StandardFontImage - 1 - j));//X移動量
+                    for(int i = 0; i < wd; i++)
+                    {
+                        int x = i + dx;
+                        if (x < 0 || x > wd - 1) continue;
+                        S[x, j] = V[i, j];
+                    }
+                }
+                //計算錯位後的虛擬車牌中有幾個垂直空白線?越多表示字元越正直
+                int n0 = 0;
+                for(int i = 0; i < wd; i++)
+                {
+                    int m = 0;
+                    for(int j = 0; j < height_StandardFontImage; j++)
+                    {
+                        m += S[i, j];
+                    }
+                    if (m == 0) n0 += 1;
+                }
+                if (n0 > mx)
+                {
+                    mx = n0;
+                    mk = sx;
+                    S0 = S;
+                }
+            }
+            if (mk != 0)//需要調整傾倒字元，將修正後之車牌二值化影像重作目標擷取
+            {
+                arrayBinary = new byte[f.imagewidth, f.imageheight];
+                for(int i = 0; i < wd; i++)
+                {
+                    for(int j = 0; j < height_StandardFontImage; j++)
+                    {
+                        arrayBinary[i + 10, j + 10] = S0[i, j];
+                    }
+                }
+                arrayOutline = Outline(arrayBinary);//建立輪廓點陣列
+                Atarget_Collection = getTargets(arrayOutline);//建立所有目標物件集合
+                viewed_Target_Annotation = new bool[Atarget_Collection.Count];
+                target_Collection = AlignTgs(Atarget_Collection);//群組化車牌目標
+                n = target_Collection.Count;
+                TgInfo[] T = new TgInfo[n];
+                Array[] M = new Array[n];
+                int[] w = new int[n];
+                int[] h = new int[n];
+                for(int k = 0; k < n; k++)
+                {
+                    TgInfo G = (TgInfo)target_Collection[k];
+                    M[k] = Tg2Bin(G);//建立單一目標的二值化矩陣
+                    T[k] = G;//儲存旋轉後的目標物件
+                    w[k] = G.width;
+                    h[k] = G.height;
+                }
+                Array.Sort(w);
+                Array.Sort(h);
+                int mw = w[n - 2];
+                int mh = h[n - 2];
+                for(int k = 0; k < n; k++)
+                {
+                    arrayBinary_NormalizationCompleted[k] = NmBin(T[k], (byte[,])M[k], mw, mh);
+                }
+            }
         }
     }
     
